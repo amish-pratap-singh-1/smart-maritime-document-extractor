@@ -1,0 +1,1 @@
+# smart-maritime-document-extractor
