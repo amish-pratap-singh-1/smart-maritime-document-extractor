@@ -15,10 +15,10 @@ This is the backend service for the Smart Maritime Document Extractor, built to 
 
 - **Runtime**: Node.js 22 LTS
 - **Framework**: Fastify
-- **Database**: PostgreSQL 16 (via Docker Compose)
+- **Database**: PostgreSQL 18 (via Docker Compose)
 - **ORM**: Prisma 7 (with `@prisma/adapter-pg`)
 - **Queueing Engine**: BullMQ
-- **Caching & Rate Limiting**: Redis 7
+- **Caching & Rate Limiting**: Redis 8
 - **Validation**: Zod
 - **Testing**: Vitest + Supertest
 

@@ -1,0 +1,15 @@
+Docker compose test
+    tested:
+        - setup works
+        - redis is persistent
+    pending:
+    - separate root user and application user
+    - password for redis access as well withe AESCBC 
+
+
+postgres - migration setup using prisma
+    - 
+
+pending:
+    eslint
+    prettier

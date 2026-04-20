@@ -1,9 +1,9 @@
-version: '3.8'
 
 services:
   postgres:
     image: postgres:18.3-bookworm
     container_name: smde-postgres
+    restart: unless-stopped
     environment:
       POSTGRES_USER: smde
       POSTGRES_PASSWORD: smde_dev
@@ -11,7 +11,7 @@ services:
     ports:
       - '5432:5432'
     volumes:
-      - pgdata:/var/lib/postgresql/data
+      - pgdata:/var/lib/postgresql
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U smde']
       interval: 5s
@@ -21,6 +21,8 @@ services:
   redis:
     image: redis:8.2-bookworm
     container_name: smde-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
     ports:
       - '6379:6379'
     volumes:
