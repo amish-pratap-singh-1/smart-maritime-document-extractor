@@ -1,0 +1,117 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─── Sessions ────────────────────────────────────────────────────────────────
+
+model Session {
+  id        String   @id @default(uuid())
+  createdAt DateTime @default(now()) @map("created_at")
+
+  extractions Extraction[]
+  jobs        Job[]
+  validations Validation[]
+
+  @@map("sessions")
+}
+
+// ─── Extractions ─────────────────────────────────────────────────────────────
+
+model Extraction {
+  id        String  @id @default(uuid())
+  sessionId String  @map("session_id")
+  session   Session @relation(fields: [sessionId], references: [id])
+
+  // File metadata
+  fileName String @map("file_name")
+  fileHash String @map("file_hash") // SHA-256 for dedup
+
+  // Detection results — explicit columns, not JSONB dumping ground
+  documentType   String? @map("document_type")
+  documentName   String? @map("document_name")
+  category       String? // IDENTITY | CERTIFICATION | STCW_ENDORSEMENT | MEDICAL | TRAINING | FLAG_STATE | OTHER
+  applicableRole String? @map("applicable_role") // DECK | ENGINE | BOTH | N/A
+  confidence     String? // HIGH | MEDIUM | LOW
+  isRequired     Boolean @default(false) @map("is_required")
+
+  // Holder info — explicit columns for queryability
+  holderName     String? @map("holder_name")
+  dateOfBirth    String? @map("date_of_birth")
+  nationality    String?
+  passportNumber String? @map("passport_number")
+  sirbNumber     String? @map("sirb_number")
+  rank           String?
+  photoPresent   String? @map("photo_present") // PRESENT | ABSENT
+
+  // Dynamic nested data as JSONB — genuinely variable per document type
+  fields      Json? // Array of extracted key-value fields
+  validity    Json? // { dateOfIssue, dateOfExpiry, isExpired, daysUntilExpiry, ... }
+  compliance  Json? // { issuingAuthority, regulationReference, ... }
+  medicalData Json? @map("medical_data") // { fitnessResult, drugTestResult, ... }
+  flags       Json? // Array of { severity, message }
+
+  // Status
+  isExpired Boolean @default(false) @map("is_expired")
+  summary   String?
+  status    String  @default("COMPLETE") // COMPLETE | FAILED
+
+  // LLM tracing — never discard
+  rawLlmResponse  String? @map("raw_llm_response")
+  processingTimeMs Int?    @map("processing_time_ms")
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  job Job?
+
+  @@unique([sessionId, fileHash]) // Dedup constraint
+  @@index([sessionId])
+  @@index([fileHash])
+  @@index([documentType])
+  @@index([status])
+  @@map("extractions")
+}
+
+// ─── Jobs ────────────────────────────────────────────────────────────────────
+
+model Job {
+  id        String  @id @default(uuid())
+  sessionId String  @map("session_id")
+  session   Session @relation(fields: [sessionId], references: [id])
+
+  extractionId String?     @unique @map("extraction_id")
+  extraction   Extraction? @relation(fields: [extractionId], references: [id])
+
+  // State machine: QUEUED → PROCESSING → COMPLETE | FAILED
+  status       String  @default("QUEUED")
+  errorCode    String? @map("error_code")
+  errorMessage String? @map("error_message")
+  retryable    Boolean @default(false)
+
+  queuedAt    DateTime  @default(now()) @map("queued_at")
+  startedAt   DateTime? @map("started_at")
+  completedAt DateTime? @map("completed_at")
+
+  @@index([sessionId])
+  @@index([status])
+  @@map("jobs")
+}
+
+// ─── Validations ─────────────────────────────────────────────────────────────
+
+model Validation {
+  id        String  @id @default(uuid())
+  sessionId String  @map("session_id")
+  session   Session @relation(fields: [sessionId], references: [id])
+
+  // Full validation result from the LLM
+  result Json
+
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([sessionId])
+  @@map("validations")
+}
